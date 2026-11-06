@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DocuMind RAG</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--fg:#e8eaf0;--mute:#8b91a1;--acc:#6ea8fe;--bd:#262a35}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;height:100vh}
+header{padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;gap:12px;align-items:center;justify-content:space-between}
+h1{font-size:16px;margin:0}#status{color:var(--mute);font-size:12px}
+#chat{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:780px;padding:10px 14px;border-radius:12px;white-space:pre-wrap}
+.user{align-self:flex-end;background:var(--acc);color:#0b1020}.bot{background:var(--card);border:1px solid var(--bd)}
+.src{margin-top:-6px;font-size:12px;color:var(--mute);max-width:780px}.src div{margin-top:4px;padding:6px 8px;border:1px solid var(--bd);border-radius:8px}
+.src b{color:var(--acc)}.meta{font-size:11px;color:var(--mute);margin-top:6px}
+form{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--bd)}
+input[type=text]{flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--fg)}
+button,label.up{padding:10px 14px;border-radius:10px;border:0;background:var(--acc);color:#0b1020;font-weight:600;cursor:pointer}
+label.up{background:var(--card);color:var(--fg);border:1px solid var(--bd);font-weight:500}
+</style></head><body>
+<header><h1>DocuMind RAG</h1><span id="status">loading…</span>
+<label class="up">Upload docs<input id="file" type="file" multiple accept=".pdf,.txt,.md" hidden></label></header>
+<div id="chat"></div>
+<form id="f"><input id="q" type="text" placeholder="Ask about your documents…" autocomplete="off"><button>Send</button></form>
+<script>
+const chat=document.getElementById('chat'),q=document.getElementById('q'),status=document.getElementById('status');
+let history=[];
+function add(cls,text){const d=document.createElement('div');d.className='msg '+cls;d.textContent=text;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
+async function health(){try{const r=await (await fetch('/api/health')).json();status.textContent=r.ready?`${r.chunks} chunks indexed · LLM: ${r.llm}`:'No index yet - upload documents'}catch(e){status.textContent='server error'}}
+health();
+document.getElementById('file').onchange=async e=>{
+  const fd=new FormData();[...e.target.files].forEach(f=>fd.append('files',f));
+  status.textContent='indexing…';await fetch('/api/upload',{method:'POST',body:fd});health()};
+document.getElementById('f').onsubmit=async e=>{
+  e.preventDefault();const question=q.value.trim();if(!question)return;q.value='';
+  add('user',question);const bot=add('bot','');let answer='';
+  const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,history:history.slice(-6)})});
+  const reader=res.body.getReader(),dec=new TextDecoder();let buf='';
+  while(true){const {done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});
+    const parts=buf.split('\n\n');buf=parts.pop();
+    for(const p of parts){if(!p.startsWith('data: '))continue;const ev=JSON.parse(p.slice(6));
+      if(ev.type==='token'){answer+=ev.text;bot.textContent=answer}
+      else if(ev.type==='sources'&&ev.sources.length){const s=document.createElement('div');s.className='src';
+        s.innerHTML=ev.sources.map(x=>`<div><b>[${x.id}]</b> ${x.source} · p.${x.page} · score ${x.score}<br>${x.snippet.replace(/</g,'&lt;')}…</div>`).join('');chat.appendChild(s)}
+      else if(ev.type==='done'&&ev.timings&&ev.timings.total_s){const m=document.createElement('div');m.className='meta';m.textContent=`retrieval ${ev.timings.retrieval_s}s · total ${ev.timings.total_s}s`;bot.appendChild(m)}
+      else if(ev.type==='error'){bot.textContent='Error: '+ev.message}
+    }chat.scrollTop=chat.scrollHeight}
+  history.push({role:'user',content:question},{role:'assistant',content:answer})};
+</script></body></html>
