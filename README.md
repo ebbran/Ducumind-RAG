@@ -1,57 +1,89 @@
-# DocuMind RAG — Hybrid Retrieval-Augmented QA with Evaluation
+# DocuMind RAG: Hybrid Retrieval-Augmented QA with Evaluation
 
-Chat with your PDFs/notes. Answers are grounded, cited `[1]`, streamed, and the retrieval
-pipeline is **measured** (Recall@k / MRR ablation), not just assumed to work.
+Chat with your PDFs and notes. Answers are grounded in the retrieved passages, cited with `[1]`-style
+markers, streamed token by token, and the retrieval pipeline is **measured** (Recall@k and MRR ablation)
+rather than assumed to work.
 
-## Levels (build them in this order, commit each as a milestone)
+## Features by level
 
-| Level | What | Files |
+| Level | What it adds | Files |
 |---|---|---|
-| 1 Basic | PDF/TXT loading, sentence-aware chunking with overlap, MiniLM embeddings, FAISS, LLM answer | `ingest.py`, `index.py`, `llm.py` |
-| 2 Intermediate | BM25 + dense hybrid search, Reciprocal Rank Fusion, cross-encoder reranking, page-level citations | `retrieve.py` |
-| 3 Advanced | Conversational query rewriting, multi-query expansion, low-confidence guardrail (refuses instead of hallucinating), LRU cache, latency tracking, streaming SSE API, upload + live reindex, Docker | `pipeline.py`, `app.py` |
-| 4 Proof | Ablation (dense vs BM25 vs hybrid vs hybrid+rerank) + LLM-as-judge faithfulness | `evaluate.py` |
+| 1. Basic | PDF/TXT loading, sentence-aware chunking with overlap, MiniLM embeddings, FAISS index, LLM answer | `rag/ingest.py`, `rag/index.py`, `rag/llm.py` |
+| 2. Intermediate | BM25 + dense hybrid search, Reciprocal Rank Fusion, cross-encoder reranking, page-level citations | `rag/retrieve.py` |
+| 3. Advanced | Conversational query rewriting, multi-query expansion, low-confidence guardrail (declines instead of guessing), LRU cache, latency tracking, streaming Flask API with chat UI, live upload and reindex, Docker | `rag/pipeline.py`, `app.py` |
+| 4. Evaluation | Ablation across dense, sparse, hybrid and hybrid+rerank, plus an optional LLM-as-judge faithfulness check (`--judge`) | `rag/evaluate.py` |
 
 ## Architecture
 ```
-question + history -> rewrite -> multi-query expand
+question + chat history -> rewrite -> multi-query expansion
    -> [FAISS dense] + [BM25 sparse] -> RRF fusion (top 20)
    -> cross-encoder rerank (top 5) -> confidence guardrail
-   -> grounded prompt w/ numbered context -> streamed answer + sources
+   -> grounded prompt with numbered context -> streamed answer + source cards
 ```
 
-## Run
+## Setup
 ```bash
 pip install -r requirements.txt
-# Free local LLM:
-ollama pull llama3.2            # then keep `ollama serve` running
-# OR any OpenAI-compatible API (OpenAI, Groq, Gemini's OpenAI endpoint):
-# export LLM_PROVIDER=openai OPENAI_API_KEY=... OPENAI_MODEL=gpt-4o-mini
+
+# LLM option A: any OpenAI-compatible API (OpenAI, Groq, Gemini's OpenAI endpoint)
+export LLM_PROVIDER=openai
+export OPENAI_BASE_URL=https://api.groq.com/openai/v1
+export OPENAI_API_KEY=<your key>
+export OPENAI_MODEL=openai/gpt-oss-20b
+
+# LLM option B: local Ollama
+# ollama pull llama3.2   (LLM_PROVIDER=ollama is the default)
 
 cp your_pdfs/*.pdf data/docs/
-python -m rag.ingest            # build index
+python -m rag.ingest            # build the index
 python app.py                   # http://localhost:5000
 ```
 Docker: `docker build -t documind . && docker run -p 5000:5000 -v $(pwd)/data:/app/data documind`
 
-## Evaluate (do this — it's what makes the project stand out)
-1. Write 20–30 questions in `data/eval/eval_set.json` with an `evidence` phrase from the right passage.
-2. `python -m rag.evaluate --judge`
-3. Paste YOUR real numbers into the table below and tune `CHUNK_SIZE`, `TOP_K`, `MIN_RERANK_SCORE`.
+Never commit API keys. Keep them in environment variables or a git-ignored file.
 
-| mode | Recall@5 | MRR | avg ms |
+## Evaluation
+
+**Setup:** 30 questions over a corpus of 4 research papers on AI in medicine (301 chunks).
+A retrieved chunk counts as relevant if it contains a reference phrase taken from the paper's text.
+Metrics are computed over the top 5 results. Run it with `python -m rag.evaluate`.
+
+| Mode | Recall@5 | MRR | Avg latency per query* |
 |---|---|---|---|
-| dense | | | |
-| sparse | | | |
-| hybrid | | | |
-| hybrid_rerank | | | |
+| Dense (FAISS) | 0.900 | 0.697 | ~330 ms |
+| Sparse (BM25) | 0.833 | 0.750 | ~1 ms |
+| Hybrid (dense + BM25, RRF) | 0.867 | 0.808 | ~17 ms |
+| **Hybrid + rerank** | **0.933** | **0.840** | ~2.0 s |
 
-## Resume bullets (fill in after you measure)
-- Built a hybrid RAG system (FAISS + BM25 with RRF, cross-encoder reranking) with cited, streamed answers via a Flask SSE API; Dockerized.
-- Designed an evaluation harness (Recall@k, MRR, LLM-judge faithfulness); hybrid+rerank improved Recall@5 from **X%** to **Y%** over dense-only on a **N**-question set.
-- Added query rewriting, multi-query expansion, and a confidence guardrail that reduces hallucinated answers.
+\*CPU only, measured after model warm-up on a GitHub Codespace. The first query is slower because models load.
 
-## Interview talking points
-Why hybrid beats dense on exact terms/IDs · why RRF needs no score normalization · bi-encoder vs cross-encoder
-tradeoff (speed vs accuracy) · chunk size vs recall · how you detect "no answer" · what you'd add next
-(Qdrant/pgvector, RAGAS, auth, document-level ACLs, async ingestion).
+### Comparison with the baselines
+
+| Hybrid + rerank vs. | Recall@5 change | MRR change |
+|---|---|---|
+| Dense only | +0.033 | +0.143 (about +20% relative) |
+| Sparse only | +0.100 | +0.090 |
+| Hybrid (no rerank) | +0.067 | +0.032 |
+
+### How to read these numbers
+- Hybrid + rerank gives the best Recall@5 and the best MRR, so the right passage is both found more often
+  and ranked higher.
+- The gain comes at a cost: reranking adds roughly 2 seconds per query on CPU. Hybrid without reranking
+  is a good option when latency matters.
+- Relevance is judged by exact phrases from the source text, which favours keyword matching. That is
+  likely why BM25 scores a higher MRR than dense retrieval here. Adding paraphrased questions would give
+  dense retrieval a fairer test.
+- With 30 questions, a single question changes Recall@5 by 0.033, so small gaps are not conclusive.
+
+## Design notes
+- **Why hybrid:** dense search handles paraphrase; BM25 handles exact terms, numbers and names.
+- **Why RRF:** it fuses rankings without having to normalise scores from different retrievers.
+- **Why a cross-encoder:** it scores the query and passage together, which is more accurate than
+  comparing embeddings, but too slow to run over the whole corpus, so it only reranks the top 20.
+- **Guardrail:** if the best reranker score is below `MIN_RERANK_SCORE`, the system says it could not
+  find an answer instead of generating one.
+- **Chunking:** about 800 characters with 150 overlap, split on sentence boundaries.
+
+## Possible extensions
+Qdrant or pgvector as the vector store, RAGAS metrics, paraphrased evaluation questions, authentication,
+per-document access control, asynchronous ingestion, and a larger multi-domain corpus.

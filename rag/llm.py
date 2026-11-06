@@ -1,12 +1,27 @@
 """LLM abstraction: swap Ollama (local/free) and any OpenAI-compatible API with one env var."""
 import json
+import time
 import requests
 import config
 
 
+def _post(*a, **k):
+    for i in range(6):
+        r = requests.post(*a, **k)
+        if r.status_code == 429 and i < 5:
+            try:
+                wait = float(r.headers.get("retry-after", 0))
+            except ValueError:
+                wait = 0
+            time.sleep(max(wait, 10 * (i + 1)))
+            continue
+        return r
+    return r
+
+
 def stream_chat(messages, temperature=0.2):
     if config.LLM_PROVIDER == "ollama":
-        r = requests.post(
+        r = _post(
             f"{config.OLLAMA_URL}/api/chat",
             json={"model": config.OLLAMA_MODEL, "messages": messages, "stream": True,
                   "options": {"temperature": temperature}},
@@ -23,7 +38,7 @@ def stream_chat(messages, temperature=0.2):
             if data.get("done"):
                 break
     else:
-        r = requests.post(
+        r = _post(
             f"{config.OPENAI_BASE_URL}/chat/completions",
             headers={"Authorization": f"Bearer {config.OPENAI_API_KEY}"},
             json={"model": config.OPENAI_MODEL, "messages": messages,

@@ -1,3 +1,189 @@
 [
-  {"question": "REPLACE with a question about your documents", "evidence": ["exact phrase from the relevant passage"]}
+ {
+  "question": "Who first described using computers to simulate intelligent behavior, and in what year?",
+  "evidence": [
+   "Turing in 1950"
+  ]
+ },
+ {
+  "question": "Who described the term artificial intelligence as the science and engineering of making intelligent machines?",
+  "evidence": [
+   "McCarthy described the term"
+  ]
+ },
+ {
+  "question": "How many rules did the MYCIN knowledge base contain?",
+  "evidence": [
+   "about 600 rules"
+  ]
+ },
+ {
+  "question": "What drove the first AI winter in the late 1970s?",
+  "evidence": [
+   "perceived limitations of AI"
+  ]
+ },
+ {
+  "question": "What sensitivity did Gargeya and Leng achieve for diabetic retinopathy screening with deep learning?",
+  "evidence": [
+   "94% sensitivity"
+  ]
+ },
+ {
+  "question": "Which company had the first FDA-approved cloud-based deep learning application in health care?",
+  "evidence": [
+   "approved clinical cloud-based DL"
+  ]
+ },
+ {
+  "question": "What was the per-lesion sensitivity of the GI Genius system in its validation study?",
+  "evidence": [
+   "sensitivity per lesion of 99.7%"
+  ]
+ },
+ {
+  "question": "How did adenoma detection rates compare between computer-aided diagnosis and standard colonoscopy in the 1058-patient trial?",
+  "evidence": [
+   "29% vs 20%"
+  ]
+ },
+ {
+  "question": "What overfitting problem limited deep learning in early medical applications?",
+  "evidence": [
+   "ML is too focused on a"
+  ]
+ },
+ {
+  "question": "What are the four V's that characterize big data in nuclear medicine?",
+  "evidence": [
+   "volume, variety, velocity and veracity",
+   "volume, variety, velocity and"
+  ]
+ },
+ {
+  "question": "What are the main steps of a radiomics analysis cycle?",
+  "evidence": [
+   "model development with validation"
+  ]
+ },
+ {
+  "question": "What Dice similarity coefficient range did Xie et al. achieve for organ and fetus segmentation?",
+  "evidence": [
+   "between 0.92 and 0.98"
+  ]
+ },
+ {
+  "question": "By how much did an artificial neural network reduce dosimetry prediction error in Lu-177 therapy?",
+  "evidence": [
+   "factor 4 and factor 10"
+  ]
+ },
+ {
+  "question": "How did the CNN model for myocardial perfusion imaging compare with human experts in AUC?",
+  "evidence": [
+   "0.81 vs. 0.78",
+   "0.81 vs 0.78"
+  ]
+ },
+ {
+  "question": "Why did some radiomics prognostic models fail in multicenter validation studies?",
+  "evidence": [
+   "failed to reproduce this"
+  ]
+ },
+ {
+  "question": "Which steps does the NLP workflow include before model development?",
+  "evidence": [
+   "stop-word removal",
+   "stop word removal"
+  ]
+ },
+ {
+  "question": "What does 'psychological acceptability' refer to as a barrier to AI adoption in nuclear medicine?",
+  "evidence": [
+   "psychological acceptability"
+  ]
+ },
+ {
+  "question": "How is the amount of radioisotope administered to a patient currently determined?",
+  "evidence": [
+   "calculated based on body weight"
+  ]
+ },
+ {
+  "question": "How much of their workday did primary care physicians spend on EHRs?",
+  "evidence": [
+   "over 50% of their work"
+  ]
+ },
+ {
+  "question": "By how much can AI documentation assistants reduce physician documentation time?",
+  "evidence": [
+   "up to 70%"
+  ]
+ },
+ {
+  "question": "What is 'note bloat' and how much longer are US physician notes than those in other countries?",
+  "evidence": [
+   "4 times longer"
+  ]
+ },
+ {
+  "question": "What risk of overreliance and deskilling does AI charting introduce?",
+  "evidence": [
+   "Overreliance and deskilling"
+  ]
+ },
+ {
+  "question": "Which virtual scribe vendors are named as examples of AI-assisted charting?",
+  "evidence": [
+   "Augmedix"
+  ]
+ },
+ {
+  "question": "What proportion of chatbot responses were problematic in the BMJ Open audit?",
+  "evidence": [
+   "49.6%"
+  ]
+ },
+ {
+  "question": "Which chatbot produced significantly more highly problematic responses than expected?",
+  "evidence": [
+   "z-score +2.07",
+   "z-score +2.07, p=0.038"
+  ]
+ },
+ {
+  "question": "What was the median reference completeness score across chatbots?",
+  "evidence": [
+   "median completeness score of 40%",
+   "median reference completeness score of 40%"
+  ]
+ },
+ {
+  "question": "How many refusals to answer occurred across 250 questions, and which chatbot refused?",
+  "evidence": [
+   "two refusals"
+  ]
+ },
+ {
+  "question": "Which health categories did chatbots perform worst on?",
+  "evidence": [
+   "athletic performance (+3.74)",
+   "(+3.74) and nutrition"
+  ]
+ },
+ {
+  "question": "Which five chatbots were audited?",
+  "evidence": [
+   "Meta AI (Meta)",
+   "Meta AI (Llama 3.3"
+  ]
+ },
+ {
+  "question": "Which chatbot included the most caveats about consulting a professional?",
+  "evidence": [
+   "Gemini=44"
+  ]
+ }
 ]

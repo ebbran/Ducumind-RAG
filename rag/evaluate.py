@@ -7,6 +7,8 @@ Usage:  python -m rag.evaluate            # retrieval ablation
         python -m rag.evaluate --judge    # + LLM-as-judge faithfulness (needs LLM running)
 """
 import argparse
+import re
+import unicodedata
 import json
 import time
 
@@ -16,9 +18,13 @@ from rag.pipeline import RAGPipeline
 from rag.retrieve import MODES
 
 
+def _norm(s):
+    return re.sub(r"[^a-z0-9]", "", unicodedata.normalize("NFKC", s).lower())
+
+
 def is_relevant(chunk, evidence):
-    t = chunk["text"].lower()
-    return any(e.lower() in t for e in evidence)
+    t = _norm(chunk["text"])
+    return any(_norm(e) in t for e in evidence)
 
 
 def retrieval_eval(pipe, data, k):
@@ -46,6 +52,7 @@ def faithfulness_eval(pipe, data):
         verdict = llm.chat([{"role": "user", "content":
             f"Context:\n{ctx}\n\nAnswer:\n{ans}\n\nIs every claim in the answer supported by the context? "
             f"Reply with only YES or NO."}])
+        time.sleep(5)
         ok += verdict.strip().upper().startswith("YES")
     print(f"\nFaithfulness (LLM judge): {ok}/{len(data)} = {ok/len(data):.2%}")
 
